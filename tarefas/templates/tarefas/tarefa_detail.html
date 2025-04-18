@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ tarefa.titulo }} - {{ tenant_name }}</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        h1 { border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+        p { line-height: 1.6; }
+        strong { display: inline-block; width: 120px; }
+        .back-link { margin-top: 20px; display: block; }
+        a { text-decoration: none; color: #007bff; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>{{ tarefa.titulo }} ({{ tenant_name }})</h1>
+
+    <p><strong>Status:</strong> {{ tarefa.get_status_display }}</p>
+    <p><strong>Descrição:</strong> {{ tarefa.descricao|linebreaksbr|default:"Nenhuma descrição." }}</p> {# linebreaksbr para formatar quebras de linha #}
+    <p><strong>Responsável:</strong> {{ tarefa.responsavel.username|default:"Ninguém" }}</p>
+    <p><strong>Criada em:</strong> {{ tarefa.data_criacao|date:"d/m/Y H:i" }}</p> {# Formata a data #}
+    {% if tarefa.data_conclusao %}
+        <p><strong>Concluída em:</strong> {{ tarefa.data_conclusao|date:"d/m/Y H:i" }}</p>
+    {% endif %}
+
+    {# Link para voltar para a lista de tarefas #}
+    <a href="{% url 'tarefas:tarefa_list' %}" class="back-link">Voltar para a lista</a>
+
+</body>
+</html>

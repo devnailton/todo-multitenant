@@ -1,0 +1,183 @@
+Passo 1: Instalar Python e PostgreSQL
+Python: Baixe e instale a versão mais recente do Python (recomendo 3.10+).
+PostgreSQL: Baixe e instale o PostgreSQL (https://www.postgresql.org/download/).
+
+Passo 2: Criar e ativar um ambiente virtual
+No terminal/cmd, crie uma pasta para o projeto e entre nela:
+mkdir todo_saas
+cd todo_saas
+python -m venv venv
+# Ative o ambiente virtual:
+# No Windows:
+venv\Scripts\activate
+# No Mac/Linux:
+source venv/bin/activate
+
+Passo 3: Instalar Django, django-tenants e psycopg2
+pip install django django-tenants psycopg2-binary djangorestframework
+
+Passo 4: Criar o projeto Django
+django-admin startproject app .
+
+Passo 5: Configurar o banco de dados PostgreSQL
+No PostgreSQL, crie um banco de dados e um usuário (pode usar pgAdmin ou terminal):
+CREATE DATABASE todo;
+CREATE USER nlt WITH PASSWORD 'Nlt@@123';
+GRANT ALL PRIVILEGES ON DATABASE todo TO nlt;
+
+No arquivo config/settings.py, configure o banco:
+DATABASES = {
+    'default': {
+        'ENGINE': 'django_tenants.postgresql_backend',
+        'NAME': 'todo',
+        'USER': 'postgres',
+        'PASSWORD': 'Nlt@@123',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
+
+
+Passo 6: Configurar o django-tenants
+No settings.py, adicione 'django_tenants' e 'rest_framework' ao INSTALLED_APPS:
+INSTALLED_APPS = [
+    'django_tenants',
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'rest_framework',
+    # apps do seu projeto
+]
+
+Adicione as configurações do django-tenants:
+TENANT_MODEL = "clientes.Cliente"  # app.Model do tenant
+TENANT_DOMAIN_MODEL = "clientes.Dominio"  # app.Model do domínio
+
+DATABASE_ROUTERS = (
+    'django_tenants.routers.TenantSyncRouter',
+)
+
+SHARED_APPS = [
+    'django_tenants',  # obrigatório
+    'clientes',        # seu app de tenants
+    'django.contrib.contenttypes',
+    'django.contrib.auth',
+    'django.contrib.sessions',
+    'django.contrib.admin',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    # outros apps compartilhados
+]
+
+TENANT_APPS = [
+    # Apenas apps que terão dados isolados por tenant
+    'tarefas',  # exemplo de app específico do tenant
+    # NÃO repita apps do SHARED_APPS aqui!
+]
+
+INSTALLED_APPS = SHARED_APPS + TENANT_APPS
+
+
+Passo 7: Criar o app de tenants
+python manage.py startapp clientes
+
+No clientes/models.py, crie os modelos de Tenant e Domínio:
+from django_tenants.models import TenantMixin, DomainMixin
+from django.db import models
+
+class Cliente(TenantMixin):
+    nome = models.CharField(max_length=100)
+    criado_em = models.DateField(auto_now_add=True)
+    # obrigatório
+    auto_create_schema = True
+
+class Dominio(DomainMixin):
+    pass
+
+No settings.py, adicione 'clientes' ao INSTALLED_APPS.
+
+
+Passo 8: Separar apps públicos e tenant apps
+No settings.py, crie duas listas:
+
+SHARED_APPS = [
+    'django_tenants',  # obrigatório
+    'clientes',        # seu app de tenants
+    'django.contrib.contenttypes',
+    'django.contrib.auth',
+    'django.contrib.sessions',
+    'django.contrib.admin',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+]
+
+TENANT_APPS = [
+    'django.contrib.contenttypes',
+    'django.contrib.auth',
+    'django.contrib.sessions',
+    'django.contrib.admin',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    # apps específicos dos tenants, ex: tarefas
+]
+
+INSTALLED_APPS = SHARED_APPS + TENANT_APPS
+
+
+Passo 9: Migrar o banco de dados
+python manage.py makemigrations clientes
+python manage.py migrate_schemas --shared
+
+
+Passo 10: Criar o app de tarefas
+python manage.py startapp tarefas
+
+No tarefas/models.py, crie o modelo de Tarefa:
+from django.db import models
+from django.contrib.auth import get_user_model
+
+class Tarefa(models.Model):
+    titulo = models.CharField(max_length=200)
+    descricao = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=[('pendente', 'Pendente'), ('andamento', 'Em andamento'), ('concluida', 'Concluída')])
+    criado_em = models.DateTimeField(auto_now_add=True)
+    concluido_em = models.DateTimeField(null=True, blank=True)
+    responsavel = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
+
+Adicione 'tarefas' ao TENANT_APPS e ao INSTALLED_APPS.
+
+
+Passo 11: Migrar o schema do tenant
+python manage.py makemigrations tarefas
+python manage.py migrate_schemas
+
+
+
+Passo 12: Criar um tenant e domínio
+No shell do Django:
+python manage.py shell
+
+from clientes.models import Cliente, Dominio
+
+cliente = Cliente(schema_name='clinica1', nome='Clínica 1')
+cliente.save()
+
+dominio = Dominio()
+dominio.domain = 'clinica1.localhost'  # use seu domínio
+dominio.tenant = cliente
+dominio.is_primary = True
+dominio.save()
+
+
+
+
+
+
+
+
+
+
+

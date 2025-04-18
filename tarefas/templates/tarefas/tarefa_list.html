@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Tarefas - {{ tenant_name }}</title> {# Usa a variável passada pela view #}
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        ul { list-style: none; padding: 0; }
+        li { margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        a { text-decoration: none; color: #007bff; }
+        a:hover { text-decoration: underline; }
+        .status-pendente { color: orange; }
+        .status-andamento { color: blue; }
+        .status-concluida { color: green; text-decoration: line-through; }
+        .no-tasks { color: #666; }
+        .admin-link { margin-top: 20px; display: block; }
+    </style>
+</head>
+<body>
+    <h1>Lista de Tarefas ({{ tenant_name }})</h1>
+
+    {% if tarefas %} {# Verifica se a lista de tarefas não está vazia #}
+        <ul>
+            {% for tarefa in tarefas %} {# Loop através de cada tarefa na lista #}
+                <li>
+                    {# Link para a view de detalhes da tarefa específica #}
+                    <a href="{% url 'tarefas:tarefa_detail' tarefa.pk %}">
+                        {{ tarefa.titulo }}
+                    </a>
+                    -
+                    {# Mostra o status com uma classe CSS para estilização #}
+                    <span class="status-{{ tarefa.status }}">
+                        {{ tarefa.get_status_display }} {# Método útil para mostrar o valor legível do choice #}
+                    </span>
+                    {% if tarefa.responsavel %}
+                        (Responsável: {{ tarefa.responsavel.username }})
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="no-tasks">Nenhuma tarefa encontrada para esta clínica.</p>
+    {% endif %}
+
+    {# Link para a interface administrativa do tenant atual #}
+    <a href="{% url 'admin:index' %}" class="admin-link">Acessar Admin</a>
+    <br>
+    <a href="{% url 'tarefas:home_tenant' %}" >Voltar para Home do Tenant</a>
+
+</body>
+</html>
